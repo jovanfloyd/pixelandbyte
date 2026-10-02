@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net: Default-deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // System administrator verification
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'jovanfloyd@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    // Validation helper for Sticker entity
+    function isValidSticker(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 32 &&
+             data.face is string && (data.face == 'front' || data.face == 'back' || data.face == 'up' || data.face == 'down' || data.face == 'right' || data.face == 'left') &&
+             data.row is number && data.row >= 0 && data.row <= 2 &&
+             data.col is number && data.col >= 0 && data.col <= 2 &&
+             data.title is string && data.title.size() <= 120 &&
+             data.imageUrl is string && data.imageUrl.size() <= 500000 &&
+             data.linkUrl is string && data.linkUrl.size() <= 1024;
+    }
+
+    // 2. Stickers Collection: 54 interactive cube squares
+    match /stickers/{stickerId} {
+      // Public read access so anyone can interact with the cube
+      allow read: if true;
+
+      // Creation: restricted to verified administrators
+      allow create: if isAdmin() &&
+                       isValidId(stickerId) &&
+                       isValidSticker(incoming()) &&
+                       incoming().id == stickerId;
+
+      // Updating: administrators can modify title, image, and link URL
+      allow update: if isAdmin() &&
+                       isValidId(stickerId) &&
+                       isValidSticker(incoming()) &&
+                       incoming().id == existing().id &&
+                       incoming().face == existing().face &&
+                       incoming().row == existing().row &&
+                       incoming().col == existing().col &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'imageUrl', 'linkUrl', 'updatedAt', 'updatedBy']);
+
+      // Deletion: only administrators
+      allow delete: if isAdmin();
+    }
+
+    // 3. Admins Collection: holds verified system administrators
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+
+      // Bootstrap primary admin: only the verified owner email can bootstrap their admin profile
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       userId == request.auth.uid &&
+                       request.auth.token.email == 'jovanfloyd@gmail.com' &&
+                       request.auth.token.email_verified == true &&
+                       incoming().keys().hasAll(['email', 'role', 'createdAt']) &&
+                       incoming().keys().hasOnly(['email', 'role', 'createdAt']) &&
+                       incoming().email == request.auth.token.email &&
+                       incoming().role == 'admin';
+
+      allow update, delete: if false;
+    }
+  }
+}

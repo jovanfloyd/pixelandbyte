@@ -1,0 +1,6 @@
+{
+  "name": "Cubo de Rubik 3D Interactivo",
+  "description": "Cubo de Rubik 3D interactivo con física realista, fotos personalizadas por cuadro, filtros de color de caras, enlaces externos y panel de administración.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

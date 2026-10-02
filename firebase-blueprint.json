@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "Sticker": {
+      "title": "Sticker",
+      "description": "Represents one of the 54 interactive squares of the Rubik's Cube with its editable title, image, and link URL.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the sticker, e.g. front-0-0",
+          "pattern": "^[a-z]+-[0-2]-[0-2]$",
+          "maxLength": 32
+        },
+        "face": {
+          "type": "string",
+          "description": "Face of the cube",
+          "enum": ["front", "back", "up", "down", "right", "left"]
+        },
+        "row": {
+          "type": "number",
+          "description": "Grid row 0-2"
+        },
+        "col": {
+          "type": "number",
+          "description": "Grid column 0-2"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title/name of the square",
+          "maxLength": 120
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Image URL or data URI of the square",
+          "maxLength": 500000
+        },
+        "linkUrl": {
+          "type": "string",
+          "description": "External destination URL when clicked",
+          "maxLength": 1024
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "User UID who made the update",
+          "maxLength": 128
+        }
+      },
+      "required": ["id", "face", "row", "col", "title", "imageUrl", "linkUrl", "updatedAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "System administrator allowed to edit cube sticker titles, images, and URLs.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Email address of the administrator",
+          "maxLength": 256
+        },
+        "role": {
+          "type": "string",
+          "description": "Role string",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of admin registration"
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/stickers/{stickerId}": {
+      "schema": {
+        "$ref": "Sticker"
+      },
+      "description": "Collection of all 54 editable squares of the Rubik's cube."
+    },
+    "/admins/{userId}": {
+      "schema": {
+        "$ref": "Admin"
+      },
+      "description": "Collection of admin users with permission to edit sticker content."
+    }
+  }
+}
